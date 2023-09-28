@@ -1,0 +1,95 @@
+---
+title: "Time series"
+author: "MAINA"
+date: "2023-09-13"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+  Time series data is a type of data collected and recorded at equal space time intervals. This kind of data is widely used in different fields such as health, finance, meteorology for predictions based on historical trends.Time series data posses several characteristics; 
+  
+  1. Stationerity: Time series data is considered stationery if its mean, variance and autocorrelation remain constant overtime. Non-stationery data may require transformation before modelling. 
+  
+  2. Seasonality: Seasonality refers to a repeat of patterns at certain fixed intervals in time series
+  
+  3. Time dependence: Time series data is highly dependent on order and time. An observation on a given data point may be influenced by the previous data points. 
+  
+  4. Noise and randomness. Time series data have some level of noise and randomness hence difficult to differentiate between patterns and randomness.
+  
+  5. Equal intervals: Time series observations have equal spaced time intervals between them. These intervals can be in days, months, quarters, years etc. 
+  
+  6. Autocorrelation: Autocorrelation refers to the relationships of time series data with its own values at different times. 
+  
+  7. Trends: Trends are the long-term gradual changes in time series data. The trend can be decreasing, increasing or flat. 
+
+
+#Loading libraries
+```{r, echo=FALSE}
+library(tidyverse)
+library(tseries)
+library(lubridate)
+library(forecast)
+```
+#Loading datasets
+```{r }
+setwd("C:\\Users\\MAINAKIGEN\\Desktop\\Felix Mutai\\Time series\\R")
+transformed<-read.csv("ma_lga_12345.csv")
+rawdata<-read.csv("raw_sales.csv")
+```
+
+
+##Data cleaning
+```{r, echo=FALSE}
+###Changing data types
+rawdata<-rawdata %>% mutate(bedrooms=as.factor(bedrooms)) %>% mutate(datesold=as.Date(datesold))
+###Subsetting data to 3 bedrooms
+bedrooms_3 <- rawdata[which(rawdata$bedrooms=='3'),]
+
+bedrooms_3 <- bedrooms_3 %>%
+mutate(month = month(datesold), #create month and year columns
+year= year(datesold)) %>%
+group_by(month,year) %>% # group by month and year
+arrange(datesold) %>% # make sure the df is sorted by date
+filter(row_number()==1)
+```
+
+
+##Creating a time series object
+```{r, echo=FALSE}
+bedrooms_3_ts <- ts(bedrooms_3$price,start=c(2007,1), end=c(2018,12), frequency = 12)
+###Time series plot
+plot.ts(bedrooms_3_ts)
+```
+
+  From the time series plot above we can observe that there is a general slight upward trend in prices of 3 bedroom houses. It is also clear that there is a season upsurge in prices towards the end of every year.We can also note that the random fluctuations are fairly constant. 
+  
+##Decomposing time series data
+```{r, echo=FALSE}
+Dec<-decompose(bedrooms_3_ts)
+par(mfrow = c(4, 1))
+plot(Dec)
+
+```
+
+ Decomposition of time series is a process of breaking it down into its three components; trend, seasonality and noise. It is now clear that there is a slight upward trend in prices of 3 bed roomed houses. There is also a seasonal increase in prices and the fluctuations are fairly constant. 
+
+##Exponential smoothing
+```{r, echo=FALSE}
+Es_model<-ses(bedrooms_3_ts)
+f_values<-forecast(Es_model,h=6)
+f_values
+
+```
+Table above shows the predictions of the house prices for the first 6 months of 2019. 
+
+##Holt-winters smoothing
+```{r, echo=FALSE}
+hw_model<-HoltWinters(bedrooms_3_ts)
+Forecast_values<-forecast(hw_model,h=6)
+Forecast_values
+```
+
+
+Table above shows the predictions of the house prices for the first 6 months of 2019
